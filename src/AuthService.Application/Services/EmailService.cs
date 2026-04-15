@@ -94,7 +94,7 @@ public class EmailService(IConfiguration configuration, ILogger<EmailService> lo
 
             // Avoid logging sensitive SMTP details
 
-            var port = int.Parse(portString ?? "587");
+            var port = int.Parse(portString ?? "465");
 
             using var client = new SmtpClient();
 
@@ -116,7 +116,7 @@ public class EmailService(IConfiguration configuration, ILogger<EmailService> lo
                 {
                     await client.ConnectAsync(host, port, SecureSocketOptions.SslOnConnect);
                 }
-                else if (port == 587)
+                else if (port == 465)
                 {
                     await client.ConnectAsync(host, port, SecureSocketOptions.StartTls);
                 }
