@@ -55,23 +55,35 @@ builder.Services.AddSecurityOptions();
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-/*builder.Services.AddSwaggerGen(c =>
+// Configuración unificada de Swagger
+builder.Services.AddSwaggerGen(options =>
 {
-    // Nombre y versión de tu API en Swagger
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "AuthService API", Version = "v1" });
- 
-    // 1. Definir el esquema de seguridad (El candado)
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    // 1. Nombre, versión y descripción
+    options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Description = "Autenticación JWT. Ingresa la palabra 'Bearer' seguida de un espacio y tu token.\n\nEjemplo: 'Bearer eyJhbGci...'",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
+        Title = "AuthService API",
+        Version = "v1",
+        Description = "API de autenticación para el sistema bancario"
     });
- 
-    // 2. Aplicar el requisito de seguridad globalmente
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+
+    // 2. Comentarios XML (Para las descripciones que ya escribiste)
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    options.IncludeXmlComments(xmlPath);
+
+    // 3. Definición del candado (JWT Bearer)
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Ingresa la palabra 'Bearer' seguida de un espacio y tu token.\n\nEjemplo: Bearer eyJhbGci..."
+    });
+
+    // 4. Aplicar seguridad global
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
@@ -86,26 +98,6 @@ builder.Services.AddEndpointsApiExplorer();
         }
     });
 });
-*/
-/*builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
-    {
-       Title = "Auth API",
-       Version = "v1",
-       Description = "API de autenticación"
-    });
-
-    
-}); 
-*/
-builder.Services.AddSwaggerGen(options =>
-    {
-        var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-        var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
- 
-        options.IncludeXmlComments(xmlPath);
-    });
 // .....................................................
  
  
