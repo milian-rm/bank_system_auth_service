@@ -5,7 +5,6 @@ namespace AuthService.Application.DTOs;
 public class LoginDto
 {
     [Required(ErrorMessage = "El correo electrónico es obligatorio.")]
-    [EmailAddress(ErrorMessage = "Formato de correo inválido.")]
     public string Email { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "La contraseña es obligatoria.")]

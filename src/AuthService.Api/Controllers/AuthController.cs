@@ -84,7 +84,7 @@ public class AuthController(IAuthService authService) : ControllerBase
     /// </summary>
     [HttpPost("login")]
     [EnableRateLimiting("AuthPolicy")]
-    public async Task<ActionResult<AuthResponseDto>> Login([FromForm] LoginDto loginDto)
+    public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginDto loginDto)
     {
         var result = await authService.LoginAsync(loginDto);
         return Ok(result);
