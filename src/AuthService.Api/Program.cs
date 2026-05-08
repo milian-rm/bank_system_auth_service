@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
+using AuthService.Application.Interfaces;
  
 var builder = WebApplication.CreateBuilder(args);
  
@@ -217,7 +218,7 @@ using (var scope = app.Services.CreateScope())
         await context.Database.MigrateAsync();
  
         logger.LogInformation("Database ready. Running seed data...");
-        await DataSeeder.SeedAsync(context);
+        await DataSeeder.SeedAsync(context, scope.ServiceProvider.GetRequiredService<IPasswordHashService>());
  
         logger.LogInformation("Database initialization completed successfully");
     }

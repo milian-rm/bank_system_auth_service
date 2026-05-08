@@ -2,12 +2,13 @@ using AuthService.Domain.Entities;
 using AuthService.Domain.Constants;
 using AuthService.Application.Services; // Importante para UuidGenerator
 using Microsoft.EntityFrameworkCore;
+using AuthService.Application.Interfaces;
 
 namespace AuthService.Persistence.Data;
 
 public static class DataSeeder
 {
-    public static async Task SeedAsync(ApplicationDbContext context)
+    public static async Task SeedAsync(ApplicationDbContext context, IPasswordHashService passwordHashService)
     {
         // 1. Verificar si ya existen roles
         if (!context.Roles.Any())
@@ -44,7 +45,7 @@ public static class DataSeeder
                     Username = "admin",
                     Email = "admin@bank.local",
                     Dpi = "0000000000000",
-                    Password = "12345678", // Recuerda hashear esto en el futuro
+                    Password = passwordHashService.HashPassword("Admin123!"),
                     Status = true,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
