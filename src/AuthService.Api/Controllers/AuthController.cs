@@ -50,7 +50,7 @@ public class AuthController(IAuthService authService) : ControllerBase
     /// </summary>
     [HttpPost("profile/by-id")]
     [EnableRateLimiting("ApiPolicy")]
-    public async Task<ActionResult<object>> GetProfileById([FromForm] GetProfileByIdDto request)
+    public async Task<ActionResult<object>> GetProfileById([FromBody] GetProfileByIdDto request)
     {
         if (string.IsNullOrEmpty(request.UserId))
         {

@@ -29,6 +29,13 @@ public static class ServiceCollectionExtensions
         // Servicio de correo
         services.AddScoped<IEmailService, EmailService>();
 
+        // HttpClient para sincronización con MongoDB (Bank Client)
+        services.AddHttpClient("BankClient", client =>
+        {
+            var bankClientUrl = configuration["BackendServices:BankClientUrl"] ?? "http://localhost:3001";
+            client.BaseAddress = new Uri(bankClientUrl);
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
 
         services.AddHealthChecks(); 
         return services;

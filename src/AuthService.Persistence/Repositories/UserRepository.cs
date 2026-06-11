@@ -1,3 +1,4 @@
+using AuthService.Application.Services;
 using AuthService.Domain.Interfaces;
 using AuthService.Domain.Entities;
 using AuthService.Persistence.Data;
@@ -67,7 +68,6 @@ public class UserRepository(ApplicationDbContext context) : IUserRepository
 
     public async Task<User> UpdateAsync(User user)
     {
-        context.Entry(user).State = EntityState.Modified;
         await context.SaveChangesAsync();
         return await GetByIdAsync(user.Id);
     }
@@ -97,10 +97,10 @@ public class UserRepository(ApplicationDbContext context) : IUserRepository
             .ToListAsync();
 
         context.UserRoles.RemoveRange(existingRoles);
-        
+
         var newUserRole = new UserRole
         {
-            Id = Guid.NewGuid().ToString()[..16], // Usamos Guid directo para evitar el error de UuidGenerator
+            Id = UuidGenerator.GenerateUserId(),
             UserId = userId,
             RoleId = roleId
         };

@@ -19,10 +19,12 @@ public class AuthService(
     ICloudinaryService cloudinaryService,
     IEmailService emailService,
     IConfiguration configuration,
+    IHttpClientFactory httpClientFactory,
     ILogger<AuthService> logger) : IAuthService
 {
 
     private readonly ICloudinaryService _cloudinaryService = cloudinaryService;
+    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
 
     public async Task<RegisterResponseDto> RegisterAsync(RegisterDto registerDto)
     {
@@ -126,22 +128,35 @@ public class AuthService(
 
         // Guardar usuario y entidades relacionadas
         var createdUser = await userRepository.CreateAsync(user);
-
         logger.LogUserRegistered(createdUser.Username);
 
-        // Enviar email de verificación en background
-        _ = Task.Run(async () =>
-        {
-            try
+        // Sincronizar con MongoDB (Bank Client Node.js) en background
+            _ = Task.Run(async () =>
             {
-                await emailService.SendEmailVerificationAsync(createdUser.Email, createdUser.Username, emailVerificationToken);
-                logger.LogInformation("Verification email sent");
-            }
-            catch (Exception ex)
+                try
+                {
+                    await SyncUserToMongoAsync(createdUser, registerDto.Password);
+                    logger.LogInformation("User synced to MongoDB successfully");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to sync user to MongoDB for {Username}", createdUser.Username);
+                }
+            });
+
+            // Enviar email de verificación en background
+            _ = Task.Run(async () =>
             {
-                logger.LogError(ex, "Failed to send verification email");
-            }
-        });
+                try
+                {
+                    await emailService.SendEmailVerificationAsync(createdUser.Email, createdUser.Username, emailVerificationToken);
+                    logger.LogInformation("Verification email sent");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to send verification email");
+                }
+            });
 
         // Crear respuesta sin JWT - solo confirmación de registro
         return new RegisterResponseDto
@@ -150,6 +165,65 @@ public class AuthService(
             UserId = createdUser.Id,
             Message = "Usuario registrado exitosamente. Por favor, verifica tu email para activar la cuenta."
         };
+    }
+    
+        private async Task SyncVerificationToMongoAsync(string email)
+    {
+        var mongoUserPayload = new { UserEmail = email };
+
+        using var httpClient = _httpClientFactory.CreateClient("BankClient");
+
+        var json = System.Text.Json.JsonSerializer.Serialize(mongoUserPayload);
+        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/bankSystem/v1/auths/verify-internal");
+        request.Headers.Add("x-internal-api-key", configuration["BackendServices:InternalApiKey"]);
+        request.Content = content;
+
+        var response = await httpClient.SendAsync(request);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            throw new Exception($"MongoDB verify sync failed ({response.StatusCode}): {body}");
+        }
+    }
+
+        private async Task SyncUserToMongoAsync(User user, string plainPassword)
+    {
+        var mongoUrl = configuration["BackendServices:BankClientUrl"] 
+                    ?? "http://localhost:3002";
+
+        var mongoUserPayload = new
+        {
+            UserName = user.Name,
+            UserSurname = user.Surname,
+            UserDPI = user.Dpi,
+            UserEmail = user.Email,
+            UserAddress = user.UserProfile?.Address ?? string.Empty,
+            UserPhone = user.UserProfile?.Phone ?? string.Empty,
+            UserJob = user.UserProfile?.JobTitle ?? string.Empty,
+            UserIncome = user.UserProfile?.MonthlyIncome ?? 0,
+            UserPassword = plainPassword,  // MongoDB hace el hash con bcrypt en el pre-save hook
+            UserRol = "USER"
+        };
+
+        using var httpClient = _httpClientFactory.CreateClient("BankClient");
+
+        var json = System.Text.Json.JsonSerializer.Serialize(mongoUserPayload);
+        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/bankSystem/v1/auths/register-internal");
+        request.Headers.Add("x-internal-api-key", configuration["BackendServices:InternalApiKey"]);
+        request.Content = content;
+
+        var response = await httpClient.SendAsync(request);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            throw new Exception($"MongoDB sync failed ({response.StatusCode}): {body}");
+        }
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto)
@@ -211,6 +285,19 @@ public class AuthService(
         user.UserEmail.EmailVerificationTokenExpiration = null;
 
         await userRepository.UpdateAsync(user);
+        
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await SyncVerificationToMongoAsync(user.Email);
+                logger.LogInformation("Email verification synced to MongoDB for {Email}", user.Email);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to sync verification to MongoDB for {Email}", user.Email);
+            }
+        });
 
         // Enviar email de bienvenida
         try
