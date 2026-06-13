@@ -14,6 +14,7 @@ public interface IAuthService
     Task<IEnumerable<UserResponseDto>> GetAllUsersAsync(); // Para el GET /api/users del ADMIN
     
     // Gestión de Email
+    Task<bool> VerifyByEmailAsync(string email);
     Task<EmailResponseDto> VerifyEmailAsync(VerifyEmailDto verifyEmailDto);
     Task<EmailResponseDto> ResendVerificationEmailAsync(ResendVerificationDto resendDto);
     Task<EmailResponseDto> ForgotPasswordAsync(ForgotPasswordDto forgotPasswordDto);

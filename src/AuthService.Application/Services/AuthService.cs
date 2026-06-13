@@ -167,6 +167,22 @@ public class AuthService(
         };
     }
     
+        public async Task<bool> VerifyByEmailAsync(string email)
+    {
+        var user = await userRepository.GetByEmailAsync(email.ToLowerInvariant());
+        if (user == null) return false;
+
+        user.Status = true;
+        if (user.UserEmail != null)
+        {
+            user.UserEmail.EmailVerified = true;
+            user.UserEmail.EmailVerificationToken = null;
+        }
+
+        await userRepository.UpdateAsync(user);
+        return true;
+    }
+    
         private async Task SyncVerificationToMongoAsync(string email)
     {
         var mongoUserPayload = new { UserEmail = email };
