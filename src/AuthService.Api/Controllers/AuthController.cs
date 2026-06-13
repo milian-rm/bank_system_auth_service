@@ -102,6 +102,17 @@ public class AuthController(IAuthService authService) : ControllerBase
     }
 
     /// <summary>
+    /// Verifica una cuenta por email (uso interno desde admin).
+    /// </summary>
+    [HttpPost("verify-by-email")]
+    public async Task<ActionResult> VerifyByEmail([FromBody] VerifyByEmailDto dto)
+    {
+        var result = await authService.VerifyByEmailAsync(dto.Email);
+        if (!result) return NotFound(new { success = false, message = "Usuario no encontrado" });
+        return Ok(new { success = true });
+    }
+
+    /// <summary>
     /// Reenvía el correo de verificación.
     /// </summary>
     [HttpPost("resend-verification")]
