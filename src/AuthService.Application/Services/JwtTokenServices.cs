@@ -10,7 +10,7 @@ namespace AuthService.Application.Services;
 
 public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
 {
-	public string GenerateToken(User user)
+    public string GenerateToken(User user)
     {
         var jwtSettings = configuration.GetSection("JwtSettings");
         var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey not configured");
@@ -27,6 +27,7 @@ public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email), // ← agregar esto
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
             new Claim("role", role)
